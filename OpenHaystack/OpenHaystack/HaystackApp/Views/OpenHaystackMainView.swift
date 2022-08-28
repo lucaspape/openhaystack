@@ -107,7 +107,7 @@ struct OpenHaystackMainView: View {
                     .fill(Color.gray)
                     .opacity(0.5)
 
-                ActivityIndicator(size: .large)
+                //ActivityIndicator(size: .large)
             }
         }
     }
@@ -184,7 +184,6 @@ struct OpenHaystackMainView: View {
         } else {
             self.checkPluginIsRunning(nil)
         }
-
     }
 
     /// Download the location reports for all current accessories. Shows an error if something fails, like plug-in is missing
