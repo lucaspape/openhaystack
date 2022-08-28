@@ -184,6 +184,16 @@ struct OpenHaystackMainView: View {
         } else {
             self.checkPluginIsRunning(nil)
         }
+        
+        update()
+    }
+    
+    func update(){
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
+            self.downloadLocationReports()
+            
+            update()
+        }
     }
 
     /// Download the location reports for all current accessories. Shows an error if something fails, like plug-in is missing
