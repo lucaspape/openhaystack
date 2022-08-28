@@ -195,3 +195,33 @@ struct FindMyLocationReport: Codable {
 enum FindMyError: Error {
     case decryptionError(description: String)
 }
+
+struct CodableFindMyLocationReport: Codable {
+    let latitude: Double
+    let longitude: Double
+    let accuracy: UInt8
+    let datePublished: TimeInterval
+    let timestamp: TimeInterval?
+    let confidence: UInt8?
+}
+
+struct CodableAccessory: Codable {
+    var name: String
+    let id: Int
+    let privateKey: Data
+    let symmetricKey: Data
+    var usesDerivation: Bool
+    var oldestRelevantSymmetricKey: Data
+    var lastDerivationTimestamp: TimeInterval
+    var updateInterval: TimeInterval
+    var locations: [CodableFindMyLocationReport]?
+    var lastLocationLatitude: Double?
+    var lastLocationLongitude: Double?
+    var lastLocationName: String?
+    var icon: String
+    var locationTimestamp: TimeInterval?
+    var isDeployed: Bool
+    var isActive: Bool
+    var isNearby: Bool
+    var lastAdvertisement: TimeInterval?
+}

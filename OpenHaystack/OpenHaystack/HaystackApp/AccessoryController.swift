@@ -11,6 +11,7 @@ import Combine
 import Foundation
 import OSLog
 import SwiftUI
+import MapKit
 
 class AccessoryController: ObservableObject {
     @Published var accessories: [Accessory]
@@ -19,18 +20,18 @@ class AccessoryController: ObservableObject {
     let findMyController: FindMyController
     
     weak var savePanel: NSSavePanel?
-
+    
     init(accessories: [Accessory], findMyController: FindMyController) {
         self.accessories = accessories
         self.findMyController = findMyController
         initAccessoryObserver()
         initObserver()
     }
-
+    
     convenience init() {
         self.init(accessories: KeychainController.loadAccessoriesFromKeychain(), findMyController: FindMyController())
     }
-
+    
     func initAccessoryObserver() {
         self.selfObserver = self.objectWillChange.sink { [weak self] _ in
             // objectWillChange is called before the values are actually changed,
@@ -41,7 +42,7 @@ class AccessoryController: ObservableObject {
             }
         }
     }
-
+    
     func initObserver() {
         self.listElementsObserver.forEach({
             $0.cancel()
@@ -53,27 +54,61 @@ class AccessoryController: ObservableObject {
             self.listElementsObserver.append(c)
         })
     }
-
+    
     func save() throws {
         try KeychainController.storeInKeychain(accessories: self.accessories)
     }
-
+    
     func updateWithDecryptedReports(devices: [FindMyDevice]) {
         // Assign last locations
         for device in devices {
             if let idx = self.accessories.firstIndex(where: { $0.id == Int(device.deviceId) }) {
                 self.objectWillChange.send()
                 let accessory = self.accessories[idx]
-
+                
                 let report = device.decryptedReports?
                     .sorted(by: { $0.timestamp ?? Date.distantPast > $1.timestamp ?? Date.distantPast })
                     .first
-
+                
                 accessory.lastLocation = report?.location
                 accessory.locationTimestamp = report?.timestamp
                 accessory.locations = device.decryptedReports
+                
+                saveAccessory(accessory: accessory)
             }
         }
+    }
+    
+    func saveAccessory(accessory: Accessory){
+        var locations = [CodableFindMyLocationReport]()
+        
+        if accessory.locations != nil {
+            for location in accessory.locations! {
+                locations.append(CodableFindMyLocationReport(latitude: location.latitude, longitude: location.longitude, accuracy: location.accuracy, datePublished: location.datePublished.timeIntervalSince1970, timestamp: location.timestamp?.timeIntervalSince1970, confidence: location.confidence))
+            }
+        }
+        
+        if(accessory.lastLocation != nil){
+            CLGeocoder().reverseGeocodeLocation(accessory.lastLocation!) { placemarks, error in
+                do {
+                    let placemark = placemarks![0]
+                  
+                    let json = try JSONEncoder().encode(CodableAccessory(name: accessory.name, id: accessory.id, privateKey: accessory.privateKey, symmetricKey: accessory.symmetricKey, usesDerivation: accessory.usesDerivation, oldestRelevantSymmetricKey: accessory.oldestRelevantSymmetricKey, lastDerivationTimestamp: accessory.lastDerivationTimestamp.timeIntervalSince1970, updateInterval: accessory.updateInterval, locations: locations, lastLocationLatitude: accessory.lastLocation?.coordinate.latitude, lastLocationLongitude: accessory.lastLocation?.coordinate.longitude,lastLocationName: "\(placemark.name!), \(placemark.postalCode!) \(placemark.locality!), \(placemark.country!)", icon: accessory.icon, locationTimestamp: accessory.locationTimestamp?.timeIntervalSince1970,isDeployed: accessory.isDeployed, isActive: accessory.isActive, isNearby: accessory.isNearby, lastAdvertisement: accessory.lastAdvertisement?.timeIntervalSince1970))
+                    let jsonString = String(data: json, encoding: .utf8)
+                    
+                    let filename = self.getDocumentsDirectory().appendingPathComponent(String(accessory.id) + ".json")
+                    
+                    try jsonString?.write(to: filename, atomically: true, encoding: String.Encoding.utf8)
+                }catch{
+                    print(error)
+                }
+           }
+        }
+    }
+    
+    func getDocumentsDirectory() -> URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        return paths[0].appendingPathComponent("openhaystack-api")
     }
 
     func delete(accessory: Accessory) throws {
