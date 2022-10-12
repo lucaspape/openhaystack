@@ -81,10 +81,21 @@ class AccessoryController: ObservableObject {
     
     func saveAccessory(accessory: Accessory){
         var locations = [CodableFindMyLocationReport]()
+        var allLocations = [CodableFindMyLocationReport]()
         
         if accessory.locations != nil {
+            var i = 0
+            
             for location in accessory.locations! {
-                locations.append(CodableFindMyLocationReport(latitude: location.latitude, longitude: location.longitude, accuracy: location.accuracy, datePublished: location.datePublished.timeIntervalSince1970, timestamp: location.timestamp?.timeIntervalSince1970, confidence: location.confidence))
+                let report = CodableFindMyLocationReport(latitude: location.latitude, longitude: location.longitude, accuracy: location.accuracy, datePublished: location.datePublished.timeIntervalSince1970, timestamp: location.timestamp?.timeIntervalSince1970, confidence: location.confidence)
+                
+                if(i <= 10){
+                    locations.append(report)
+                }
+                
+                allLocations.append(report)
+                
+                i+=1
             }
         }
         
@@ -94,11 +105,20 @@ class AccessoryController: ObservableObject {
                     let placemark = placemarks![0]
                   
                     let json = try JSONEncoder().encode(CodableAccessory(name: accessory.name, id: accessory.id, privateKey: accessory.privateKey, symmetricKey: accessory.symmetricKey, usesDerivation: accessory.usesDerivation, oldestRelevantSymmetricKey: accessory.oldestRelevantSymmetricKey, lastDerivationTimestamp: accessory.lastDerivationTimestamp.timeIntervalSince1970, updateInterval: accessory.updateInterval, locations: locations, lastLocationLatitude: accessory.lastLocation?.coordinate.latitude, lastLocationLongitude: accessory.lastLocation?.coordinate.longitude,lastLocationName: "\(placemark.name!), \(placemark.postalCode!) \(placemark.locality!), \(placemark.country!)", icon: accessory.icon, locationTimestamp: accessory.locationTimestamp?.timeIntervalSince1970,isDeployed: accessory.isDeployed, isActive: accessory.isActive, isNearby: accessory.isNearby, lastAdvertisement: accessory.lastAdvertisement?.timeIntervalSince1970))
+                    
                     let jsonString = String(data: json, encoding: .utf8)
                     
                     let filename = self.getDocumentsDirectory().appendingPathComponent(String(accessory.id) + ".json")
                     
                     try jsonString?.write(to: filename, atomically: true, encoding: String.Encoding.utf8)
+                    
+                    let fullJson = try JSONEncoder().encode(CodableAccessory(name: accessory.name, id: accessory.id, privateKey: accessory.privateKey, symmetricKey: accessory.symmetricKey, usesDerivation: accessory.usesDerivation, oldestRelevantSymmetricKey: accessory.oldestRelevantSymmetricKey, lastDerivationTimestamp: accessory.lastDerivationTimestamp.timeIntervalSince1970, updateInterval: accessory.updateInterval, locations: allLocations, lastLocationLatitude: accessory.lastLocation?.coordinate.latitude, lastLocationLongitude: accessory.lastLocation?.coordinate.longitude,lastLocationName: "\(placemark.name!), \(placemark.postalCode!) \(placemark.locality!), \(placemark.country!)", icon: accessory.icon, locationTimestamp: accessory.locationTimestamp?.timeIntervalSince1970,isDeployed: accessory.isDeployed, isActive: accessory.isActive, isNearby: accessory.isNearby, lastAdvertisement: accessory.lastAdvertisement?.timeIntervalSince1970))
+                    
+                    let fullJsonString = String(data: fullJson, encoding: .utf8)
+                    
+                    let fullFilename = self.getDocumentsDirectory().appendingPathComponent("full-" + String(accessory.id) + ".json")
+                    
+                    try fullJsonString?.write(to: fullFilename, atomically: true, encoding: String.Encoding.utf8)
                 }catch{
                     print(error)
                 }
