@@ -15,6 +15,8 @@ import AppKit
 public struct UpdateCheckController {
     
     public static func checkForNewVersion() {
+        return
+        
         // Load the GitHub Releases page
         let releasesURL = URL(string: "https://github.com/seemoo-lab/openhaystack/releases")!
         URLSession.shared.dataTask(with: releasesURL) { optionalData, response, error in
